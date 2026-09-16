@@ -1,19 +1,31 @@
+import numpy as np
+
 from data.dataset import CVDataset
-from torch.utils.data import DataLoader
-from data.cvs_loader import load_cv_dataset
-from data.preprocessing import preprocess_dataframe_and_save
-
-df_rows = load_cv_dataset('data/test_data')
-
-preprocess_dataframe_and_save(df_rows, 'data/pandas_converted_data/test_data.pt')
 
 
+def print_label_stats(dataset, name):
+  labels = [y for _, y in dataset]
+  unique, counts = np.unique(labels, return_counts=True)
+  print(f"{name}: {dict(zip(unique, counts))}")
 
-dataset = CVDataset("data/pandas_converted_data/test_data.pt")
-loader = DataLoader(dataset, batch_size=4, shuffle=True)
+substance0 =\
+  CVDataset(r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\data_45_CVs_scan_rates\substance0.pt")
+substance1 =\
+  CVDataset(r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\data_45_CVs_scan_rates\substance1.pt")
+substance2 =\
+  CVDataset(r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\data_45_CVs_scan_rates\substance2.pt")
+substance3 =\
+  CVDataset(r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\data_45_CVs_scan_rates\substance3.pt")
 
-x, y = next(iter(loader))
-print(x.shape)
-print(y)
+
+
+print_label_stats(substance0, "substance0")
+print_label_stats(substance1, "substance1")
+print_label_stats(substance2, "substance2")
+print_label_stats(substance3, "substance3")
+
+for i in range(10):
+    print("sub0:", substance0[i][1])
+    print("sub1:", substance1[i][1])
 
 
