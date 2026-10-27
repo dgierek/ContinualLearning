@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torch.utils.data import ConcatDataset, DataLoader
 
-
+from analysis.importance import integrated_gradients
 from data.dataset import CVDataset
 from training.train_ewc import train_ewc
 from tqdm import tqdm
@@ -55,9 +55,12 @@ if __name__ == "__main__":
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
+
     # -----------------------------
     # Load susbstance data
     # -----------------------------
+
+
     substance0_train = load_task(
         r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\joint_datasets\substance0_joint_train.pt")
     substance1_train = load_task(
@@ -111,6 +114,7 @@ if __name__ == "__main__":
         "after_task_3": []
     }
 
+    importance_maps = []
 
     for i in tqdm(range(N_RUNS)):
 
@@ -120,7 +124,7 @@ if __name__ == "__main__":
             substance_datasets=substance_datasets,
             num_classes=num_classes,
             in_channels=in_channels,
-            epochs=10,
+            epochs=40,
             lr=5e-4,
             criterion=nn.CrossEntropyLoss()
         )
@@ -130,6 +134,13 @@ if __name__ == "__main__":
             # Convert dict {0:acc0,1:acc1,2:acc2,3:acc3} → list [acc0,acc1,acc2,acc3]
             acc_list = [results_over_time[tp][sid] for sid in range(4)]
             all_runs_results[tp].append(acc_list)
+
+
+        # pick a representative CV (or loop over all)
+        sample_x_tensor = sample_x.unsqueeze(0).to(device)  # shape (1, 2, 1001)
+        imp = integrated_gradients(model, sample_x_tensor, device=device)
+
+        importance_maps.append(imp)
 
     mean_results_over_time = {}
 
@@ -143,4 +154,23 @@ if __name__ == "__main__":
             3: mean_arr[3]
         }
 
-    plot_substance_accuracies(mean_results_over_time, N_RUNS)
+    plot_substance_accuracies(mean_results_over_time, N_RUNS, save_path=f"EWC_baseline_performance.png")
+
+    importance_maps = np.array(importance_maps)  # shape (100, L)
+    np.save(r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\analysis\importance_maps_100runs.npy",
+            importance_maps)
+    mean_importance = importance_maps.mean(axis=0)
+    std_importance = importance_maps.std(axis=0)
+
+    plt.figure(figsize=(12, 5))
+    plt.plot(mean_importance, label="Mean importance")
+    plt.fill_between(
+        np.arange(len(mean_importance)),
+        mean_importance - std_importance,
+        mean_importance + std_importance,
+        alpha=0.3,
+        label="±1 std"
+    )
+    plt.legend()
+    plt.title(f"Averaged Importance Map over {N_RUNS} runs")
+    plt.show(block=True)

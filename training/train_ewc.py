@@ -44,6 +44,8 @@ class EWC:
       loss += (self.fisher[n] * (p - self.means[n]) ** 2).sum()
     return loss
 
+
+
 def count_parameters(model):
   return sum(p.numel() for p in model.parameters() if p.requires_grad)
 

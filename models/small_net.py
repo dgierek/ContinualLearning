@@ -89,8 +89,12 @@ class CVNanoNet(nn.Module):
 
 
 class CVMidNet(nn.Module):
-    def __init__(self, in_channels=1, num_classes=4):
+    def __init__(self, in_channels=2, num_classes=4):
         super().__init__()
+
+        self.relu1 = nn.ReLU(inplace=False)
+        self.relu2 = nn.ReLU(inplace=False)
+        self.relu3 = nn.ReLU(inplace=False)
 
         # Moderate feature extractor
         self.conv1 = nn.Conv1d(in_channels, 16, kernel_size=7, padding=3)
@@ -127,13 +131,13 @@ class CVMidNet(nn.Module):
             return x.numel()
 
     def forward(self, x):
-        x = F.relu(self.bn1(self.conv1(x)))
+        x = self.relu1(self.bn1(self.conv1(x)))
         x = self.pool(x)
 
-        x = F.relu(self.bn2(self.conv2(x)))
+        x = self.relu2(self.bn2(self.conv2(x)))
         x = self.pool(x)
 
-        x = F.relu(self.bn3(self.conv3(x)))
+        x = self.relu3(self.bn3(self.conv3(x)))
         x = self.pool(x)
 
         x = self.dropout(x)
