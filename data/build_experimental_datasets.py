@@ -6,179 +6,14 @@ import torch
 from scipy.interpolate import interp1d
 import random
 import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
 
-TARGET_LEN = 1001
-
-###############################################
-# 1. Load experimental CSV
-###############################################
-
-def load_cv_file(path):
-    # Skip metadata lines
-    df = pd.read_csv(path, skiprows=5, encoding="utf-16")
-    df = df.dropna()
-    df.columns = ["V", "I"]
-
-    # Convert to float (this is the critical step)
-    df["V"] = pd.to_numeric(df["V"], errors="coerce")
-    df["I"] = pd.to_numeric(df["I"], errors="coerce")
-
-    voltage = df["V"].values
-    current = df["I"].values
-    return voltage, current
-
-###############################################
-# 2. Resample to fixed length
-###############################################
-
-def resample_cv(voltage, current, target_len=TARGET_LEN):
-    # Find turning point (max voltage)
-    turn_idx = np.argmax(voltage)
-
-    # Forward scan (increasing voltage)
-    v_f = voltage[:turn_idx + 1]
-    i_f = current[:turn_idx + 1]
-
-    # Reverse scan (decreasing voltage)
-    v_r = voltage[turn_idx:]
-    i_r = current[turn_idx:]
-
-    # Reverse the reverse scan so voltage becomes increasing
-    v_r_rev = v_r[::-1]
-    i_r_rev = i_r[::-1]
-
-    # Resample each half
-    half = target_len // 2
-
-    v_f_uni = np.linspace(v_f.min(), v_f.max(), half)
-    i_f_uni = np.interp(v_f_uni, v_f, i_f)
-
-    v_r_uni = np.linspace(v_r_rev.min(), v_r_rev.max(), target_len - half)
-    i_r_uni = np.interp(v_r_uni, v_r_rev, i_r_rev)
-
-    # Combine back into forward + reverse order
-    v_res = np.concatenate([v_f_uni, v_r_uni[::-1]])
-    i_res = np.concatenate([i_f_uni, i_r_uni[::-1]])
-
-    return v_res, i_res
-
-
-###############################################
-# 3. Your normalization
-###############################################
-
-def normalize_curve(curve, idx=None):
-    mean = curve.mean(dim=1, keepdim=True)
-    std = curve.std(dim=1, keepdim=True) + 1e-8
-    norm_curve = (curve - mean) / std
-    return norm_curve
-
-###############################################
-# 4. Your augmentation
-###############################################
-
-def augment_curve(curve):
-    # curve: (2, N)
-    v = curve[0]
-    i = curve[1]
-
-    plt.plot(v, i)
-    plt.title('Original CV')
-    plt.show(block=True)
-
-    # 1. Gaussian noise (current only)
-    i = i + 0.05 * torch.randn_like(i)
-
-    plt.plot(v, i)
-    plt.title('CV after gaussian noise')
-    plt.show(block=True)
-
-
-    # 2. Horizontal shift (current only)
-    i = i.roll(shifts=np.random.randint(-10, 10), dims=0)
-
-    plt.plot(v, i)
-    plt.title('CV after horizontal shift')
-    plt.show(block=True)
-
-    # 3. Vertical scaling (current only)
-    i = i * (1 + 0.1 * torch.randn(1))
-
-    plt.plot(v, i)
-    plt.title('CV after vertical scaling')
-    plt.show(block=True)
-
-    # 4. Baseline drift (current only)
-    i = i + 0.02 * torch.randn(1)
-
-    plt.plot(v, i)
-    plt.title('CV after baseline drift')
-    plt.show(block=True)
-
-    return torch.stack([v, i], dim=0)
-
-###############################################
-# 5. Percentage split
-###############################################
-
-def split_substance(curves, labels, train_ratio=0.7):
-    idx = list(range(len(curves)))
-    random.shuffle(idx)
-
-    curves = [curves[i] for i in idx]
-    labels = [labels[i] for i in idx]
-
-    train_size = int(len(curves) * train_ratio)
-
-    train_curves = curves[:train_size]
-    train_labels = labels[:train_size]
-
-    test_curves = curves[train_size:]
-    test_labels = labels[train_size:]
-
-    return train_curves, train_labels, test_curves, test_labels
-
-###############################################
-# 6. Process one substance folder
-###############################################
-
-def process_substance(folder_path, label):
-    curves = []
-    labels = []
-
-    for file in glob.glob(os.path.join(folder_path, "*.csv")):
-        voltage, current = load_cv_file(file)
-        v_res, i_res = resample_cv(voltage, current)
-
-        curve = torch.tensor(np.stack([v_res, i_res], axis=0), dtype=torch.float32)
-
-        curve = normalize_curve(curve)
-
-        noise1 = augment_curve(curve)
-        noise2 = augment_curve(curve)
-        noise3 = augment_curve(curve)
-        noise4 = augment_curve(curve)
-
-        # import matplotlib.pyplot as plt
-        # plt.plot(noise1[0], noise1[1])
-        # plt.show(block=True)
-
-        curves.append(curve)
-        curves.append(noise1)
-        curves.append(noise2)
-        curves.append(noise3)
-        curves.append(noise4)
-        labels.append(label)
-        labels.append(label)
-        labels.append(label)
-        labels.append(label)
-        labels.append(label)
-
-    return curves, labels
-
-###############################################
-# 7. Save dataset
-###############################################
+def load_substance(path):
+    data = torch.load(path)
+    curves = data["curves"]
+    labels = data["labels"]
+    label_map = data.get("label_map", {})
+    return curves, labels, label_map
 
 def save_dataset(curves, labels, label_map, out_path):
     data = {
@@ -187,13 +22,44 @@ def save_dataset(curves, labels, label_map, out_path):
         "label_map": label_map
     }
     torch.save(data, out_path)
-    print("Saved:", out_path, "Num curves:", len(curves))
+    print(f"Saved: {out_path}")
+    print("  Unique labels:", set(labels))
+    print("  Num curves:", len(curves))
 
-###############################################
-# 8. Main
-###############################################
 
-base_dir = r"experimental_data"
+def normalize_curve(curve):
+    #normalising only current:
+    current = curve[1]
+    v = curve[0]
+    current_norm = (current - global_min) / (
+            global_max - global_min + 1e-8
+    )
+    return torch.stack([v, current_norm], dim=0)
+
+def augment_curve(curve, i):
+    # curve: (2, N)
+    v = curve[0]
+    current = curve[1]
+    # 1. Gaussian noise
+    current_noise = current + 0.005 * current.max().item() * torch.randn_like(current)
+
+    # 2. Horizontal shift
+    current_rolled = current_noise.roll(shifts=np.random.randint(-10, 10), dims=0)
+
+    # 3. Vertical scaling
+    current_vertical_scale = current_rolled * (1 + 0.01 * torch.randn(1))
+
+    # 4. Baseline drift
+    current_vertical_drift = current_vertical_scale + 0.002 * current.max().item() * torch.randn(1)
+
+    if i==0:
+        curv_evolution.append([v, current_noise])
+        curv_evolution.append([v, current_rolled])
+        curv_evolution.append([v, current_vertical_scale])
+        curv_evolution.append([v, current_vertical_drift])
+
+
+    return torch.stack([v, current_vertical_drift], dim=0)
 
 substances = {
     0: "Co(phen)3",
@@ -202,17 +68,122 @@ substances = {
     3: "Syringaldazine"
 }
 
-out_dir = r"experimental_joint_datasets"
-os.makedirs(out_dir, exist_ok=True)
 
-for label, name in substances.items():
-    folder = os.path.join(base_dir, name)
+if __name__ == "__main__":
 
-    print(f"\n=== Processing {name} ===")
+    base_dir = r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\experimental_data_processed"
+    out_dir = r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\experimental_joint_datasets"
 
-    curves, labels = process_substance(folder, label)
+    os.makedirs(out_dir, exist_ok=True)
 
-    train_curves, train_labels, test_curves, test_labels = split_substance(curves, labels)
+    global_min = float("inf")
+    global_max = float("-inf")
 
-    save_dataset(train_curves, train_labels, substances, os.path.join(out_dir, f"substance{label}_exp_train.pt"))
-    save_dataset(test_curves, test_labels, substances, os.path.join(out_dir, f"substance{label}_exp_test.pt"))
+    # fig, axs = plt.subplots(2, 2, figsize=(8, 6))
+    #
+    # [ax0, ax1], [ax2, ax3] = axs
+
+    for substance_id in [0, 1, 2, 3]:
+        in_path = os.path.join(base_dir, f"{substances[substance_id]}.pt")
+        curves, labels, label_map = load_substance(in_path)
+
+
+        for curve in curves:
+            current = curve[1]
+            global_min = min(global_min, current.min().item())
+            global_max = max(global_max, current.max().item())
+    #         [ax0, ax1, ax2, ax3][substance_id].plot(curve[0], current)
+    #
+    # plt.show(block=True)
+
+    for substance_id in [0, 1, 2, 3]:
+        in_path = os.path.join(base_dir, f"{substances[substance_id]}.pt")
+
+        print(f"\n=== Processing {in_path} ===")
+
+        curves, labels, label_map = load_substance(in_path)
+
+        train_curves, test_curves, train_labels, test_labels = train_test_split(
+            curves,
+            labels,
+            test_size=0.2,
+            stratify=labels,
+            random_state=42
+        )
+
+        normalised_test_curves = []
+        augmented_train_curves = []
+        augmented_train_labels = []
+        # for visualisation:
+        i = 0
+        curv_evolution = []
+
+        for test_curve in test_curves:
+            normalised_test_curves.append(normalize_curve(test_curve))
+
+        for c, lbl in zip(train_curves, train_labels):
+            c_norm = normalize_curve(c)
+
+            if i == 0:
+                curv_evolution.append(c)
+                curv_evolution.append(c_norm)
+
+            augmented_train_curves.append(c_norm)
+            augmented_train_labels.append(lbl)
+
+            for _ in range(3):
+                augmented_train_curves.append(
+                    augment_curve(c_norm.clone(), i)
+                )
+                i = 1
+                augmented_train_labels.append(lbl)
+
+        plt.plot(curv_evolution[0][0], curv_evolution[0][1] * 1.e6, label='Original curve')
+        plt.xlabel("Voltage [V]")
+        plt.ylabel("Current [$\mu$A]")
+        plt.show(block=True)
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+        labels = [
+            'Normalisation',
+            'Gaussian noise',
+            'Horizontal shift',
+            'Vertical scaling',
+            'Vertical shift'
+        ]
+
+        # Full plot
+        for i, label in zip(range(1, 6), labels):
+            ax1.plot(curv_evolution[i][0], curv_evolution[i][1], label=label)
+
+        ax1.set_xlabel("Voltage [V]")
+        ax1.set_ylabel("Normalised current")
+        ax1.set_title('A', fontweight='bold', loc='left')
+        ax1.legend()
+
+        # Zoomed plot
+        for i, label in zip(range(1, 6), labels):
+            ax2.plot(curv_evolution[i][0], curv_evolution[i][1], label=label, lw=2.5)
+
+        peak_idx = np.argmax(curv_evolution[1][1])
+        peak_x = curv_evolution[1][0][peak_idx]
+        peak_y = curv_evolution[1][1][peak_idx]
+
+        ax2.set_xlim(peak_x - 0.05, peak_x + 0.05)
+        ax2.set_ylim(peak_y - 0.1, peak_y + 0.1)
+
+        ax2.set_xlabel("Voltage [V]")
+        # ax2.set_ylabel("Normalised current")
+        ax2.set_title('B', fontweight='bold', loc='left')
+
+        plt.tight_layout()
+        plt.show(block=True)
+
+        # Save train file
+        out_train = os.path.join(out_dir, f"{substances[substance_id]}_joint_train.pt")
+        save_dataset(augmented_train_curves, augmented_train_labels, label_map, out_train)
+
+        # Save test file
+        out_test = os.path.join(out_dir, f"{substances[substance_id]}_joint_test.pt")
+        save_dataset(normalised_test_curves, test_labels, label_map, out_test)
