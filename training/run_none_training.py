@@ -47,22 +47,22 @@ if __name__ == "__main__":
     # Load substance data
     # -----------------------------
     substance0_train = load_task(
-        r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\experimental_joint_datasets\substance0_exp_train.pt")
+        r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\joint_datasets\substance0_joint_train.pt")
     substance1_train = load_task(
-        r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\experimental_joint_datasets\substance1_exp_train.pt")
+        r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\joint_datasets\substance1_joint_train.pt")
     substance2_train = load_task(
-        r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\experimental_joint_datasets\substance2_exp_train.pt")
+        r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\joint_datasets\substance2_joint_train.pt")
     substance3_train = load_task(
-        r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\experimental_joint_datasets\substance3_exp_train.pt")
+        r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\joint_datasets\substance3_joint_train.pt")
 
     substance0_test = load_task(
-        r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\experimental_joint_datasets\substance0_exp_test.pt")
+        r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\joint_datasets\substance0_joint_test.pt")
     substance1_test = load_task(
-        r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\experimental_joint_datasets\substance1_exp_test.pt")
+        r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\joint_datasets\substance1_joint_test.pt")
     substance2_test = load_task(
-        r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\experimental_joint_datasets\substance2_exp_test.pt")
+        r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\joint_datasets\substance2_joint_test.pt")
     substance3_test = load_task(
-        r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\experimental_joint_datasets\substance3_exp_test.pt")
+        r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\joint_datasets\substance3_joint_test.pt")
 
     context_datasets = [
         ConcatDataset([substance0_train, substance1_train]),
@@ -90,7 +90,7 @@ if __name__ == "__main__":
     # -----------------------------
     # Run NONE baseline N times
     # -----------------------------
-    N_RUNS = 100
+    N_RUNS = 10
 
     all_runs_results = {
         "after_task_1": [],

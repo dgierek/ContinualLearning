@@ -146,3 +146,9 @@ class CVMidNet(nn.Module):
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
         return x
+
+
+def print_model_info(model):
+    model_name = model.__class__.__name__
+    num_of_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"Using model {model_name} with {num_of_params} trainable parameters.")

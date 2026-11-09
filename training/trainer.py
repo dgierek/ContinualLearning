@@ -1,46 +1,42 @@
 import torch
 import torch.nn as nn
+import numpy as np
+
+criterion = torch.nn.CrossEntropyLoss()
+
+def evaluate(model, test_dataset):
+    # calculating test loss/accuracy
+    model.eval()
+
+    test_total_loss = 0.0  # Accumulate batch losses
+    test_correct = 0  # Count correct predictions
+    test_total = 0  # Count total samples
+
+    for x_test, y_test in test_dataset:
+        # Forward pass: model outputs raw logits
+        test_logits = model(x_test.unsqueeze(0))
+
+        y_test_tensor = torch.tensor([y_test], dtype=torch.long)
+
+        # Compute loss for this batch
+        test_loss = criterion(test_logits, y_test_tensor)
+
+        # Track loss
+        test_total_loss += test_loss.item()
+
+        # Compute predictions: argmax over class dimension
+        test_preds = test_logits.argmax(dim=1)
+
+        # Count correct predictions
+        # print('test prediction:', np.array(test_preds), 'correct answer', y_test)
+        test_correct += (test_preds == y_test).sum().item()
+        test_total += y_test_tensor.size(0)
+
+    return test_total_loss / len(test_dataset), test_correct / test_total
 
 def train_one_epoch(model, dataloader, optimizer, device):
-    """
-    Train the model for a single epoch.
-
-    Parameters
-    ----------
-    model : torch.nn.Module
-        Neural network being trained.
-
-    dataloader : torch.utils.data.DataLoader
-        Provides batches of (inputs, labels). Each batch is a tuple (x, y):
-        - x : tensor of shape (batch_size, input_dim or channels, ...)
-        - y : tensor of integer class labels
-
-    optimizer : torch.optim.Optimizer
-        Optimization algorithm (Adam, SGD, etc.) controlling parameter updates.
-
-    device : torch.device
-        CPU or GPU where tensors and model should be placed.
-
-    Returns
-    -------
-    avg_loss : float
-        Mean cross‑entropy loss over all batches.
-
-    accuracy : float
-        Fraction of correctly predicted samples across the epoch.
-
-    Notes
-    -----
-    - The function performs one full pass over the dataset.
-    - CrossEntropyLoss expects raw logits (no softmax).
-    - `model.train()` enables dropout, batchnorm updates, etc.
-    """
-
     # Put model into training mode (important for dropout/batchnorm)
     model.train()
-
-    # Standard multi-class classification loss
-    criterion = nn.CrossEntropyLoss()
 
     total_loss = 0.0      # Accumulate batch losses
     correct = 0           # Count correct predictions
@@ -81,7 +77,7 @@ def train_one_epoch(model, dataloader, optimizer, device):
 
 def train_one_epoch_ewc(model, dataloader, optimizer, device, ewc_list, lambda_ewc):
     model.train()
-
+ # CHECK THAT !!!!!!!!!!!!!!!
     weights = torch.tensor([3.0, 1.0, 1.0, 1.0]).to(device)
     criterion = nn.CrossEntropyLoss(weight=weights)
 

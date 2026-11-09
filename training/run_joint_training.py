@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 from analysis.plot_loss_curve import plot_loss_curve, plot_lr_curve
 from data.dataset import CVDataset
-from training.train_joint import train_joint
+from training.train_standard import train_joint
 
 
 def load_task(path):
