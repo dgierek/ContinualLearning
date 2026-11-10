@@ -3,17 +3,10 @@ import glob
 import numpy as np
 import pandas as pd
 import torch
-from scipy.interpolate import interp1d
-import random
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 
-def load_substance(path):
-    data = torch.load(path)
-    curves = data["curves"]
-    labels = data["labels"]
-    label_map = data.get("label_map", {})
-    return curves, labels, label_map
+from data import load_substance
 
 def save_dataset(curves, labels, label_map, out_path):
     data = {
@@ -83,10 +76,12 @@ if __name__ == "__main__":
     #
     # [ax0, ax1], [ax2, ax3] = axs
 
+    total_number_of_curves = 0
+
     for substance_id in [0, 1, 2, 3]:
         in_path = os.path.join(base_dir, f"{substances[substance_id]}.pt")
         curves, labels, label_map = load_substance(in_path)
-
+        total_number_of_curves += len(curves)
 
         for curve in curves:
             current = curve[1]
@@ -95,6 +90,8 @@ if __name__ == "__main__":
     #         [ax0, ax1, ax2, ax3][substance_id].plot(curve[0], current)
     #
     # plt.show(block=True)
+
+    print('Total number of curves in the experimental dataset before preprocessing ', total_number_of_curves)
 
     for substance_id in [0, 1, 2, 3]:
         in_path = os.path.join(base_dir, f"{substances[substance_id]}.pt")

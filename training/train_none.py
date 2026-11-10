@@ -1,5 +1,5 @@
 from torch.utils.data import DataLoader
-from models.small_net import CVNanoNet, CVMidNet
+from models.small_net import CVMidNet, print_model_info
 from training.run_joint_training import debug_predictions
 from training.trainer import train_one_epoch
 
@@ -49,10 +49,6 @@ def evaluate(model, dataset, device):
     return correct / total
 
 
-def count_parameters(model):
-    return sum(p.numel() for p in model.parameters() if p.requires_grad)
-
-
 def train_none(context_datasets, test_datasets, substance_datasets, num_classes, in_channels=1, epochs=3, lr=1e-3):
     """
     Naive sequential training across contexts (NONE baseline).
@@ -65,8 +61,7 @@ def train_none(context_datasets, test_datasets, substance_datasets, num_classes,
     model = CVMidNet(in_channels=in_channels, num_classes=num_classes).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
 
-    model_name = model.__class__.__name__
-    print(f"Using model {model_name} with {count_parameters(model)} trainable parameters.")
+    print_model_info(model)
 
     # Store forgetting results
     all_results = []
@@ -90,7 +85,7 @@ def train_none(context_datasets, test_datasets, substance_datasets, num_classes,
             factor=0.8,  # halve LR
             patience=5,  # wait 5 epochs with no improvement
         )
-
+        ADD HISTORY HERE AND TEST
         # Train on current task
         for epoch in range(epochs):
             loss, acc = train_one_epoch(model, loader, optimizer, device)

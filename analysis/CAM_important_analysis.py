@@ -3,7 +3,7 @@ from torch.utils.data import ConcatDataset
 from scipy.ndimage import zoom
 import matplotlib.pyplot as plt
 
-from data.dataset import load_synthetic_test_data
+from data.dataset import load_synthetic_test_data, load_synthetic_k0_E0_test_data
 from models.small_net import CVMidNet, print_model_info
 from plotting import set_standard_plot_params
 
@@ -21,7 +21,7 @@ gradients = None
 # create model architecture
 model = CVMidNet()
 
-file_name = 'Standard_baseline_150_epochs'
+file_name = 'Standard_baseline_100_epochs_dataset_Synthetic_k0_E0'
 
 checkpoint = torch.load(rf"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\training\results\model_{file_name}.pth")
 
@@ -32,16 +32,15 @@ print_model_info(model)
 # inference mode
 model.eval()
 
-
 model.conv3.register_forward_hook(forward_hook)
 model.conv3.register_full_backward_hook(backward_hook)
 
-test_data = load_synthetic_test_data()
+test_data = load_synthetic_k0_E0_test_data()
 test_data_concat = ConcatDataset(test_data)
 
 print('Loaded test dataset of length ', test_data_concat.__len__())
 
-indices = 0, 9, 18, 27
+indices = 0, 14, 28, 42
 titles = ['A', 'B', 'C', 'D']
 
 set_standard_plot_params()
@@ -88,7 +87,7 @@ for i, ax, title in zip(indices, [ax1, ax2, ax3, ax4], titles):
     )
     ax.grid(True)
     ax.set_title(title, fontweight='bold', loc='left')
-    # plt.text(0,0.4,f'True class: {y_test.item()}\n'
+    # ax.text(0,0.4,f'True class: {y_test.item()}\n'
     #                           f'Predicted class: {pred_class.item()}',
     #          fontsize=15)
 

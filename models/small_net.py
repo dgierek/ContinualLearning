@@ -152,3 +152,7 @@ def print_model_info(model):
     model_name = model.__class__.__name__
     num_of_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"Using model {model_name} with {num_of_params} trainable parameters.")
+
+
+def choose_device():
+    return "cuda" if torch.cuda.is_available() else "cpu"

@@ -1,4 +1,5 @@
 import torch
+from data import synthetic_k0_E0_joint
 
 
 class CVDataset(torch.utils.data.Dataset):
@@ -70,5 +71,25 @@ def load_experimental_test_data():
       fr"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\experimental_joint_datasets\FeCl2_joint_test.pt")
     substance3_test = load_task(
       fr"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\experimental_joint_datasets\Syringaldazine_joint_test.pt")
+
+    return substance0_test, substance1_test, substance2_test, substance3_test
+
+def load_synthetic_k0_E0_data():
+    substance0_train = load_task(synthetic_k0_E0_joint + r"\substance0_joint_train.pt")
+    substance1_train = load_task(synthetic_k0_E0_joint + r"\substance1_joint_train.pt")
+    substance2_train = load_task(synthetic_k0_E0_joint + r"\substance2_joint_train.pt")
+    substance3_train = load_task(synthetic_k0_E0_joint + r"\substance3_joint_train.pt")
+
+    substance0_test, substance1_test, substance2_test, substance3_test = load_synthetic_k0_E0_test_data()
+
+
+    return (substance0_train, substance1_train, substance2_train, substance3_train,
+            substance0_test, substance1_test, substance2_test, substance3_test)
+
+def load_synthetic_k0_E0_test_data():
+    substance0_test = load_task(synthetic_k0_E0_joint + r"\substance0_joint_test.pt")
+    substance1_test = load_task(synthetic_k0_E0_joint + r"\substance1_joint_test.pt")
+    substance2_test = load_task(synthetic_k0_E0_joint + r"\substance2_joint_test.pt")
+    substance3_test = load_task(synthetic_k0_E0_joint + r"\substance3_joint_test.pt")
 
     return substance0_test, substance1_test, substance2_test, substance3_test

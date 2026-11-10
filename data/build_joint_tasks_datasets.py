@@ -1,28 +1,15 @@
 import numpy as np
 import torch
-import random
 import os
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 
-plt.rcParams['axes.labelsize'] = 18      # X/Y axis label size
-plt.rcParams['axes.titlesize'] = 20      # Title size
-plt.rcParams['xtick.labelsize'] = 16     # X tick labels
-plt.rcParams['ytick.labelsize'] = 16     # Y tick labels
-plt.rcParams['legend.fontsize'] = 16     # Legend text
-plt.rcParams['figure.titlesize'] = 18    # Title text
+from data import load_substance, synthetic_k0_E0
+from analysis.plotting import set_standard_plot_params
 
-plt.rcParams.update({'font.size': 20})
+set_standard_plot_params()
 
-
-
-def load_substance(path):
-    data = torch.load(path)
-    curves = data["curves"]
-    labels = data["labels"]
-    label_map = data.get("label_map", {})
-    return curves, labels, label_map
-
+test_size = 0.3
 
 def save_dataset(curves, labels, label_map, out_path):
     data = {
@@ -73,8 +60,8 @@ def augment_curve(curve, i):
 
 if __name__ == "__main__":
 
-    base_dir = r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\data_45_CVs_scan_rates"
-    out_dir  = r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\joint_datasets"
+    base_dir = synthetic_k0_E0
+    out_dir  = r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\data\Synthetic_data_k0_E0_joint_datasets"
 
     os.makedirs(out_dir, exist_ok=True)
 
@@ -82,18 +69,18 @@ if __name__ == "__main__":
     global_max = float("-inf")
 
     for substance_id in [0, 1, 2, 3]:
-        in_path = os.path.join(base_dir, f"substance{substance_id}.pt")
+        in_path = os.path.join(base_dir, f"substance_{substance_id}.pt")
         curves, labels, label_map = load_substance(in_path)
         for curve in curves:
             current = curve[1]
             global_min = min(global_min, current.min().item())
             global_max = max(global_max, current.max().item())
-    #         plt.plot(curve[0], curve[1])
-    #
-    # plt.show(block=True)
+            plt.plot(curve[0], curve[1])
+
+    plt.show(block=True)
 
     for substance_id in [0, 1, 2, 3]:
-        in_path = os.path.join(base_dir, f"substance{substance_id}.pt")
+        in_path = os.path.join(base_dir, f"substance_{substance_id}.pt")
 
         print(f"\n=== Processing {in_path} ===")
 
@@ -102,7 +89,7 @@ if __name__ == "__main__":
         train_curves, test_curves, train_labels, test_labels = train_test_split(
             curves,
             labels,
-            test_size=0.2,
+            test_size=test_size,
             stratify=labels,
             random_state=42
         )

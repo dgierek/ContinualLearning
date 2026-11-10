@@ -41,7 +41,7 @@ def plot_training_history(history, save_path = '', logscale=False):
     plt.show(block=True)
 
 if __name__ == "__main__":
-    file_name = 'Standard_baseline_150_epochs'
+    file_name = 'Standard_baseline_100_epochs_dataset_Synthetic_k0_E0'
 
     checkpoint = torch.load(
         rf"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\training\results\model_{file_name}.pth")
