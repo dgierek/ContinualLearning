@@ -75,11 +75,8 @@ def train_one_epoch(model, dataloader, optimizer, device):
     # Average loss over batches, accuracy over all samples
     return total_loss / len(dataloader), correct / total
 
-def train_one_epoch_ewc(model, dataloader, optimizer, device, ewc_list, lambda_ewc):
+def train_one_epoch_ewc(model, dataloader, optimizer, device, ewc_list, lambda_ewc, criterion):
     model.train()
- # CHECK THAT !!!!!!!!!!!!!!!
-    weights = torch.tensor([3.0, 1.0, 1.0, 1.0]).to(device)
-    criterion = nn.CrossEntropyLoss(weight=weights)
 
     total_loss = 0.0  # Accumulate batch losses
     correct = 0  # Count correct predictions
@@ -93,7 +90,10 @@ def train_one_epoch_ewc(model, dataloader, optimizer, device, ewc_list, lambda_e
 
         if ewc_list:
             reg = sum(ewc.penalty(model) for ewc in ewc_list)
-            loss = loss + lambda_ewc * reg
+            # print('Standard loss', loss)
+            # print('EWC loss', reg)
+            loss += 0.5 * lambda_ewc * reg
+            # print('Total loss', loss)
 
         loss.backward()
         optimizer.step()
@@ -109,42 +109,4 @@ def train_one_epoch_ewc(model, dataloader, optimizer, device, ewc_list, lambda_e
         total += y.size(0)
 
     # Average loss over batches, accuracy over all samples
-    return total_loss / len(dataloader), correct / total
-
-def train_one_epoch_mas(model, dataloader, optimizer, device, mas, lambda_mas):
-    model.train()
-    ce_loss_fn = nn.CrossEntropyLoss()
-
-    total_loss = 0.0
-    correct = 0
-    total = 0
-
-    for x, y in dataloader:
-        x, y = x.to(device), y.to(device)
-
-        optimizer.zero_grad()
-
-        # Forward pass
-        logits = model(x)
-        ce_loss = ce_loss_fn(logits, y)
-
-        # MAS penalty
-        mas_loss = mas.penalty(model)
-        loss = ce_loss + lambda_mas * mas_loss
-
-        # Backward
-        loss.backward()
-
-        # Update MAS importance (gradient of output norm)
-        mas.update_importance(model)
-
-        optimizer.step()
-
-        # Accuracy
-        preds = logits.argmax(dim=1)
-        correct += (preds == y).sum().item()
-        total += y.size(0)
-
-        total_loss += loss.item()
-
     return total_loss / len(dataloader), correct / total

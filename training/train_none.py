@@ -5,32 +5,6 @@ from training.trainer import train_one_epoch
 
 import torch
 
-def evaluate_per_substance(model, datasets, device):
-  """
-  datasets: dict {substance_id: torch Dataset}
-  returns: dict {substance_id: accuracy}
-  """
-  model.eval()
-  results = {}
-
-  with torch.no_grad():
-    for sid, dataset in datasets.items():
-      loader = torch.utils.data.DataLoader(dataset, batch_size=64, shuffle=False)
-      correct = 0
-      total = 0
-
-      for x, y in loader:
-        x = x.to(device)
-        y = y.to(device)
-        logits = model(x)
-        preds = logits.argmax(dim=1)
-        correct += (preds == y).sum().item()
-        total += y.size(0)
-
-      results[sid] = correct / total
-
-  return results
-
 def evaluate(model, dataset, device):
     loader = DataLoader(dataset, batch_size=len(dataset), shuffle=True)
     model.eval()
@@ -49,7 +23,7 @@ def evaluate(model, dataset, device):
     return correct / total
 
 
-def train_none(context_datasets, test_datasets, substance_datasets, num_classes, in_channels=1, epochs=3, lr=1e-3):
+def train_none(context_datasets, test_datasets, num_classes, in_channels=1, epochs=3, lr=1e-3):
     """
     Naive sequential training across contexts (NONE baseline).
     Catastrophic forgetting is expected.
@@ -59,17 +33,15 @@ def train_none(context_datasets, test_datasets, substance_datasets, num_classes,
 
     # Initialize model
     model = CVMidNet(in_channels=in_channels, num_classes=num_classes).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     print_model_info(model)
 
-    # Store forgetting results
-    all_results = []
-
-    results_over_time = {
-        "after_task_1": [],
-        "after_task_2": [],
-        "after_task_3": []
+    history = {
+      'test_accuracy_task_1': [],
+      'test_accuracy_task_2': [],
+      'test_accuracy_task_3': [],
+      'test_accuracy_task_4': [],
     }
 
     # Sequentially train on each context
@@ -85,7 +57,7 @@ def train_none(context_datasets, test_datasets, substance_datasets, num_classes,
             factor=0.8,  # halve LR
             patience=5,  # wait 5 epochs with no improvement
         )
-        ADD HISTORY HERE AND TEST
+
         # Train on current task
         for epoch in range(epochs):
             loss, acc = train_one_epoch(model, loader, optimizer, device)
@@ -98,19 +70,13 @@ def train_none(context_datasets, test_datasets, substance_datasets, num_classes,
 
         # Evaluate on all tasks seen so far
         print(f"\n--- Evaluation after finishing context {t+1} ---")
-        accs = []
-        for eval_id in range(3):
+        for eval_id in range(4):
             acc = evaluate(model, test_datasets[eval_id], device)
-            accs.append(acc)
+            history[f'test_accuracy_task_{eval_id+1}'].append(acc)
             print(f"Accuracy on Task {eval_id+1}: {acc:.3f}")
             print(f"\n=== Debug Task {eval_id+1}===")
             debug_predictions(model, test_datasets[eval_id], device)
 
-        sub_accs = evaluate_per_substance(model, substance_datasets, device)
-        results_over_time[f"after_task_{t + 1}"] = sub_accs
 
 
-
-        all_results.append(accs)
-
-    return model, all_results, results_over_time
+    return model, history
