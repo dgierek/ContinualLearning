@@ -1,5 +1,5 @@
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset
 from models.small_net import CVMidNet, print_model_info
 from training.run_joint_training import debug_predictions
 from training.train_none import evaluate
@@ -74,6 +74,10 @@ def train_ewc(context_datasets, test_datasets, num_classes, criterion, lambda_ew
 
   for t, train_dataset in enumerate(context_datasets):
     loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    if t==0:
+      test_loader = DataLoader(ConcatDataset(test_datasets[:2]), shuffle=False)
+    else:
+      test_loader = DataLoader(test_datasets[t+1], shuffle=False)
     print(f"\n=== Training on context {t + 1} ===")
 
     # Scheduler for changng learning rate
@@ -97,7 +101,8 @@ def train_ewc(context_datasets, test_datasets, num_classes, criterion, lambda_ew
       # ----------------------------------------
 
     # build EWC object for this task
-    ewc_list.append(EWC(model, loader, device, criterion))
+    # ewc_list.append(EWC(model, loader, device, criterion))
+    ewc_list.append(EWC(model, test_loader, device, criterion))
 
     # Evaluate on all tasks seen so far
     print(f"\n--- Evaluation after finishing context {t + 1} ---")

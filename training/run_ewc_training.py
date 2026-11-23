@@ -10,8 +10,8 @@ from tqdm import tqdm
 
 if __name__ == "__main__":
 
-    lambda_ewc = 1e8
-    N_RUNS = 1
+    lambda_ewc = 1e25
+    N_RUNS = 100
     # -----------------------------
     # Load susbstance data
     # -----------------------------
@@ -19,9 +19,6 @@ if __name__ == "__main__":
 
     (substance0_train, substance1_train, substance2_train, substance3_train,
     substance0_test, substance1_test, substance2_test, substance3_test) = load_synthetic_k0_E0_data()
-
-    training_dataset = ConcatDataset([substance0_train, substance1_train, substance2_train, substance3_train])
-    test_dataset = ConcatDataset([substance0_test, substance1_test, substance2_test, substance3_test])
 
     context_datasets = [
         ConcatDataset([substance0_train, substance1_train]),
@@ -65,6 +62,6 @@ if __name__ == "__main__":
     exponent = len(str(abs(int(lambda_ewc)))) - 1
 
     torch.save(runs_history,
-               rf"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\training\results\EWC_baseline_runs_history_E0_k0_lambda_e{exponent}_test.pt")
+               rf"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\training\results\EWC_baseline_runs_history_E0_k0_lambda_e{exponent}_runs_{N_RUNS}.pt")
     plot_model_testing_accuracies_CL_scenario(runs_history,
-                                              save_path=fr"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\training\results\EWC_baseline_E0_k0_lambda_e{exponent}_test")
+                                              save_path=fr"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\training\results\EWC_baseline_E0_k0_lambda_e{exponent}_runs_{N_RUNS}")

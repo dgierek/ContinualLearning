@@ -96,7 +96,22 @@ def train_one_epoch_ewc(model, dataloader, optimizer, device, ewc_list, lambda_e
             # print('Total loss', loss)
 
         loss.backward()
+
+        # before = {
+        #     n: p.detach().clone()
+        #     for n, p in model.named_parameters()
+        # }
+
         optimizer.step()
+
+        # for n, p in model.named_parameters():
+        #     update = p.detach() - before[n]
+        #
+        #     print(
+        #         n,
+        #         "update_mean =", update.abs().mean().item(),
+        #         "update_max =", update.abs().max().item()
+        #     )
 
         # Track loss
         total_loss += loss.item()

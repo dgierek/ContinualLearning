@@ -48,7 +48,13 @@ def plot_model_testing_accuracies_CL_scenario(runs_history, save_path=''):
         for key in runs_history[0]
     }
 
+    std_results = {
+        key: np.std([d[key] for d in runs_history], axis=0, ddof=1)
+        for key in runs_history[0]
+    }
+
     accs = np.array(list(mean_results.values()))
+    accs_std = np.array(list(std_results.values()))
 
     x = np.arange(accs.shape[-1])
     width = 0.25
@@ -61,6 +67,8 @@ def plot_model_testing_accuracies_CL_scenario(runs_history, save_path=''):
             x + task * width,
             accs[task, :],
             width,
+            yerr=accs_std[task, :],
+            capsize=5,
             label=f"Substance {task}"
         )
 
@@ -70,7 +78,7 @@ def plot_model_testing_accuracies_CL_scenario(runs_history, save_path=''):
                         "After Task 3\nSubstance 3"])
 
     ax.set_ylabel("Testing accuracy")
-    ax.set_ylim(0, 1.05)
+    ax.set_ylim(0, 1.2)
     ax.legend(draggable=True, fontsize=12)
     ax.grid(True)
 
@@ -89,5 +97,5 @@ if __name__ == "__main__":
     #
     # plot_training_history(history)
 
-    runs_history = torch.load(r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\training\results\Standard_baseline_None_baseline_runs_history.pt")
+    runs_history = torch.load(r"C:\Users\Public\Desktop\Praktyki IChF\ContinualLearning\training\results\EWC_baseline_runs_history_E0_k0_lambda_e10_runs_100.pt")
     plot_model_testing_accuracies_CL_scenario(runs_history)
